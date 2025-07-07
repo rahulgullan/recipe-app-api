@@ -26,3 +26,4 @@ class UserAdmin(BaseUserAdmin):
 
 admin.site.register(models.User, UserAdmin)
 admin.site.register(models.Recipe)  # noqa: F401
+admin.site.register(models.Tag)  # noqa: F401
