@@ -39,54 +39,42 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-class TagViewSet(
+class BaseRecipeAttrViewSet(
     mixins.DestroyModelMixin,
     mixins.UpdateModelMixin,
     mixins.ListModelMixin,
     viewsets.GenericViewSet
 ):
+    """
+    Base viewset for managing recipe attributes like tags and ingredients.
+    """
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Retrieve attributes for the authenticated user only.
+        """
+        return self.queryset.filter(user=self.request.user).order_by('-name')
+
+    def perform_create(self, serializer):
+        """
+        Create a new attribute with the authenticated user as the owner.
+        """
+        serializer.save(user=self.request.user)
+
+
+class TagViewSet(BaseRecipeAttrViewSet):
     """
     Viewset for managing tags associated with recipes.
     """
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        """
-        Retrieve tags for the authenticated user only.
-        """
-        return self.queryset.filter(user=self.request.user).order_by('-name')
 
-    def perform_create(self, serializer):
-        """
-        Create a new tag with the authenticated user as the owner.
-        """
-        serializer.save(user=self.request.user)
-
-class IngredientViewSet(
-    mixins.DestroyModelMixin,
-    mixins.UpdateModelMixin,
-    mixins.ListModelMixin,
-    viewsets.GenericViewSet
-):
+class IngredientViewSet(BaseRecipeAttrViewSet):
     """
     Viewset for managing ingredients associated with recipes.
     """
     serializer_class = IngredientSerializer
     queryset = Ingredient.objects.all()
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """
-        Retrieve ingredients for the authenticated user only.
-        """
-        return self.queryset.filter(user=self.request.user).order_by('-name')
-
-    def perform_create(self, serializer):
-        """
-        Create a new ingredient with the authenticated user as the owner.
-        """
-        serializer.save(user=self.request.user)
