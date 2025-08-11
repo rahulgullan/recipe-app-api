@@ -1,13 +1,13 @@
 """
 Test for tags API
 """
-
+from decimal import Decimal
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
-from core.models import Tag
+from core.models import Tag, Recipe
 from recipe.serializers import TagSerializer
 
 TAGS_URL = reverse('recipe:tag-list')
@@ -84,3 +84,40 @@ class PrivateTagsApiTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Tag.objects.filter(id=tag.id).exists())
 
+    def test_filter_tags_assigned_to_recipes(self):
+        """Test listing tags assigned to recipes"""
+        tag1 = Tag.objects.create(user=self.user, name="Breakfast")
+        tag2 = Tag.objects.create(user=self.user, name="Lunch")
+        recipe = Recipe.objects.create(
+            title='Green Eggs on Toast',
+            time_minutes=10,
+            price=Decimal('2.50'),
+            user=self.user
+        )
+        recipe.tags.add(tag1)
+        res = self.client.get(TAGS_URL, {'assigned_only': 1})
+        s1 = TagSerializer(tag1)
+        s2 = TagSerializer(tag2)
+        self.assertIn(s1.data, res.data)
+        self.assertNotIn(s2.data, res.data)
+
+    def test_filter_tags_assigned_to_recipes_unique(self):
+        """Test filtering tags assigned to recipes returns unique results"""
+        tag1 = Tag.objects.create(user=self.user, name="Breakfast")
+        Tag.objects.create(user=self.user, name="Lunch")
+        recipe1 = Recipe.objects.create(
+            title='Green Eggs on Toast',
+            time_minutes=10,
+            price=Decimal('2.50'),
+            user=self.user
+        )
+        recipe1.tags.add(tag1)
+        recipe2 = Recipe.objects.create(
+            title='Avocado Toast',
+            time_minutes=5,
+            price=Decimal('3.00'),
+            user=self.user
+        )
+        recipe2.tags.add(tag1)
+        res = self.client.get(TAGS_URL, {'assigned_only': 1})
+        self.assertEqual(len(res.data), 1)
